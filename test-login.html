@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        input { padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="test">
+        <h2>🔍 Smart Coop Login Test</h2>
+        <p>This test will help us identify the exact issue.</p>
+        
+        <h3>Step 1: Test Mock API Directly</h3>
+        <button onclick="testMockAPI()">Test Mock API</button>
+        <div id="api-result"></div>
+        
+        <h3>Step 2: Manual Login Test</h3>
+        <input type="text" id="username" placeholder="Username" value="admin">
+        <input type="password" id="password" placeholder="Password" value="password">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+        
+        <h3>Step 3: Open Real App</h3>
+        <a href="http://localhost:5173/login" target="_blank">Open Smart Coop Login</a>
+        
+        <div id="debug-info"></div>
+    </div>
+
+    <script>
+        // Test the mock API directly
+        async function testMockAPI() {
+            const result = document.getElementById('api-result');
+            result.innerHTML = 'Testing...';
+            
+            try {
+                // Simulate the exact same logic as mockApi.login
+                const users = [
+                    { id: 'user-001', username: 'admin', role: 'ADMIN', tenantId: 'tenant-001' },
+                    { id: 'user-002', username: 'clerk', role: 'CLERK', tenantId: 'tenant-001' },
+                    { id: 'user-003', username: 'finance', role: 'FINANCE', tenantId: 'tenant-001' }
+                ];
+                
+                const credentials = { username: 'admin', password: 'password' };
+                const user = users.find(u => u.username === credentials.username && credentials.password === 'password');
+                
+                if (user) {
+                    result.innerHTML = `<span class="success">✅ API Test SUCCESS: Found user ${user.username} with role ${user.role}</span>`;
+                } else {
+                    result.innerHTML = `<span class="error">❌ API Test FAILED: Invalid credentials</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ API Test ERROR: ${error.message}</span>`;
+            }
+        }
+        
+        // Test login flow
+        async function testLogin() {
+            const result = document.getElementById('login-result');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            result.innerHTML = 'Testing login...';
+            
+            try {
+                // Simulate API call with delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const users = [
+                    { id: 'user-001', username: 'admin', role: 'ADMIN', tenantId: 'tenant-001' },
+                    { id: 'user-002', username: 'clerk', role: 'CLERK', tenantId: 'tenant-001' },
+                    { id: 'user-003', username: 'finance', role: 'FINANCE', tenantId: 'tenant-001' }
+                ];
+                
+                const user = users.find(u => u.username === username && password === 'password');
+                
+                if (user) {
+                    result.innerHTML = `<span class="success">✅ Login SUCCESS: ${user.username} authenticated!</span>`;
+                    // Store in localStorage (simulate what React app does)
+                    localStorage.setItem('smartcoop_user', JSON.stringify(user));
+                } else {
+                    result.innerHTML = `<span class="error">❌ Login FAILED: Invalid credentials</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Login ERROR: ${error.message}</span>`;
+            }
+        }
+        
+        // Show debug info
+        window.onload = function() {
+            const debug = document.getElementById('debug-info');
+            debug.innerHTML = `
+                <h4>Debug Information:</h4>
+                <p><strong>Current URL:</strong> ${window.location.href}</p>
+                <p><strong>Browser:</strong> ${navigator.userAgent}</p>
+                <p><strong>LocalStorage:</strong> ${localStorage.getItem('smartcoop_user') ? 'Has user data' : 'No user data'}</p>
+            `;
+        };
+    </script>
+</body>
+</html>

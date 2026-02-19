@@ -1,0 +1,273 @@
+import { User, Farmer, Harvest, Batch, Payment, UserRole, CropType, Grade, PaymentStatus, Price } from '../types';
+
+// Mock tenant IDs for multi-tenancy simulation
+export const TENANT_ID_1 = 'tenant-001';
+export const TENANT_ID_2 = 'tenant-002';
+
+// Mock Users
+export const mockUsers: User[] = [
+  {
+    id: 'user-001',
+    username: 'admin',
+    email: 'admin@smartcoop.com',
+    role: 'COOP_ADMIN' as UserRole,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'user-002',
+    username: 'clerk',
+    email: 'clerk@smartcoop.com',
+    role: 'CLERK' as UserRole,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-01-02T00:00:00Z',
+    updatedAt: '2024-01-02T00:00:00Z',
+  },
+  {
+    id: 'user-003',
+    username: 'finance',
+    email: 'finance@smartcoop.com',
+    role: 'FINANCE' as UserRole,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-01-03T00:00:00Z',
+    updatedAt: '2024-01-03T00:00:00Z',
+  },
+  {
+    id: 'user-004',
+    username: 'admin2',
+    email: 'admin2@smartcoop.com',
+    role: 'COOP_ADMIN' as UserRole,
+    tenantId: TENANT_ID_2,
+    createdAt: '2024-01-04T00:00:00Z',
+    updatedAt: '2024-01-04T00:00:00Z',
+  },
+];
+
+// Mock Farmers
+export const mockFarmers: Farmer[] = [
+  {
+    id: 'farmer-001',
+    name: 'John Smith',
+    email: 'john.smith@email.com',
+    phone: '+1234567890',
+    address: '123 Farm Road, Rural Area, State 12345',
+    farmSize: 50,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-01-05T00:00:00Z',
+    updatedAt: '2024-01-05T00:00:00Z',
+  },
+  {
+    id: 'farmer-002',
+    name: 'Mary Johnson',
+    email: 'mary.johnson@email.com',
+    phone: '+1234567891',
+    address: '456 Agriculture Lane, Farm Town, State 12346',
+    farmSize: 75,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-01-06T00:00:00Z',
+    updatedAt: '2024-01-06T00:00:00Z',
+  },
+  {
+    id: 'farmer-003',
+    name: 'Robert Brown',
+    email: 'robert.brown@email.com',
+    phone: '+1234567892',
+    address: '789 Harvest Avenue, Crop City, State 12347',
+    farmSize: 100,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-01-07T00:00:00Z',
+    updatedAt: '2024-01-07T00:00:00Z',
+  },
+  {
+    id: 'farmer-004',
+    name: 'Sarah Davis',
+    email: 'sarah.davis@email.com',
+    phone: '+1234567893',
+    address: '321 Field Street, Grain Valley, State 12348',
+    farmSize: 60,
+    tenantId: TENANT_ID_2,
+    createdAt: '2024-01-08T00:00:00Z',
+    updatedAt: '2024-01-08T00:00:00Z',
+  },
+];
+
+// Mock Harvests
+export const mockHarvests: Harvest[] = [
+  {
+    id: 'harvest-001',
+    farmerId: 'farmer-001',
+    crop: 'MAIZE' as CropType,
+    weight: 5000,
+    grade: 'A' as Grade,
+    harvestDate: '2024-02-15T00:00:00Z',
+    status: 'PROCESSED',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-15T00:00:00Z',
+    updatedAt: '2024-02-15T00:00:00Z',
+  },
+  {
+    id: 'harvest-002',
+    farmerId: 'farmer-002',
+    crop: 'WHEAT' as CropType,
+    weight: 3500,
+    grade: 'B' as Grade,
+    harvestDate: '2024-02-16T00:00:00Z',
+    status: 'BATCHED',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-16T00:00:00Z',
+    updatedAt: '2024-02-16T00:00:00Z',
+  },
+  {
+    id: 'harvest-003',
+    farmerId: 'farmer-001',
+    crop: 'RICE' as CropType,
+    weight: 4200,
+    grade: 'A' as Grade,
+    harvestDate: new Date().toISOString().split('T')[0] + 'T00:00:00Z', // Today
+    status: 'PENDING',
+    tenantId: TENANT_ID_1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'harvest-004',
+    farmerId: 'farmer-003',
+    crop: 'SOYBEANS' as CropType,
+    weight: 2800,
+    grade: 'C' as Grade,
+    harvestDate: '2024-02-14T00:00:00Z',
+    status: 'PROCESSED',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-14T00:00:00Z',
+    updatedAt: '2024-02-14T00:00:00Z',
+  },
+  {
+    id: 'harvest-005',
+    farmerId: 'farmer-004',
+    crop: 'COTTON' as CropType,
+    weight: 1800,
+    grade: 'A' as Grade,
+    harvestDate: '2024-02-13T00:00:00Z',
+    status: 'PROCESSED',
+    tenantId: TENANT_ID_2,
+    createdAt: '2024-02-13T00:00:00Z',
+    updatedAt: '2024-02-13T00:00:00Z',
+  },
+];
+
+// Mock Batches
+export const mockBatches: Batch[] = [
+  {
+    id: 'batch-001',
+    batchNumber: 'BATCH-2024-001',
+    harvestIds: ['harvest-001', 'harvest-004'],
+    totalWeight: 7800,
+    grade: 'A' as Grade,
+    status: 'COMPLETED',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-17T00:00:00Z',
+    updatedAt: '2024-02-17T00:00:00Z',
+  },
+  {
+    id: 'batch-002',
+    batchNumber: 'BATCH-2024-002',
+    harvestIds: ['harvest-002'],
+    totalWeight: 3500,
+    grade: 'B' as Grade,
+    status: 'PROCESSING',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-18T00:00:00Z',
+    updatedAt: '2024-02-18T00:00:00Z',
+  },
+  {
+    id: 'batch-003',
+    batchNumber: 'BATCH-2024-003',
+    harvestIds: ['harvest-005'],
+    totalWeight: 1800,
+    grade: 'A' as Grade,
+    status: 'COMPLETED',
+    tenantId: TENANT_ID_2,
+    createdAt: '2024-02-19T00:00:00Z',
+    updatedAt: '2024-02-19T00:00:00Z',
+  },
+];
+
+// Mock Payments
+export const mockPayments: Payment[] = [
+  {
+    id: 'payment-001',
+    farmerId: 'farmer-001',
+    batchId: 'batch-001',
+    amount: 15600.00,
+    dueDate: '2024-03-01T00:00:00Z',
+    paidDate: '2024-02-28T00:00:00Z',
+    status: 'PAID' as PaymentStatus,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-20T00:00:00Z',
+    updatedAt: '2024-02-28T00:00:00Z',
+  },
+  {
+    id: 'payment-002',
+    farmerId: 'farmer-003',
+    batchId: 'batch-001',
+    amount: 8900.00,
+    dueDate: '2024-03-05T00:00:00Z',
+    status: 'PENDING' as PaymentStatus,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-21T00:00:00Z',
+    updatedAt: '2024-02-21T00:00:00Z',
+  },
+  {
+    id: 'payment-003',
+    farmerId: 'farmer-002',
+    batchId: 'batch-002',
+    amount: 5250.00,
+    dueDate: '2024-03-10T00:00:00Z',
+    status: 'PENDING' as PaymentStatus,
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-22T00:00:00Z',
+    updatedAt: '2024-02-22T00:00:00Z',
+  },
+  {
+    id: 'payment-004',
+    farmerId: 'farmer-004',
+    batchId: 'batch-003',
+    amount: 3600.00,
+    dueDate: '2024-02-25T00:00:00Z',
+    status: 'OVERDUE' as PaymentStatus,
+    tenantId: TENANT_ID_2,
+    createdAt: '2024-02-23T00:00:00Z',
+    updatedAt: '2024-02-23T00:00:00Z',
+  },
+];
+
+// Helper function to get data filtered by tenant
+export const getTenantData = <T extends { tenantId: string }>(
+  data: T[],
+  tenantId: string
+): T[] => {
+  return data.filter(item => item.tenantId === tenantId);
+};
+
+// Mock Prices
+export const mockPrices: Price[] = [
+  {
+    id: 'price-001',
+    crop: 'MAIZE',
+    pricePerKg: 0.50,
+    effectiveDate: '2024-02-15T00:00:00Z',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-15T00:00:00Z',
+    updatedAt: '2024-02-15T00:00:00Z',
+  },
+  {
+    id: 'price-002',
+    crop: 'WHEAT',
+    pricePerKg: 0.65,
+    effectiveDate: '2024-02-15T00:00:00Z',
+    tenantId: TENANT_ID_1,
+    createdAt: '2024-02-15T00:00:00Z',
+    updatedAt: '2024-02-15T00:00:00Z',
+  },
+];
