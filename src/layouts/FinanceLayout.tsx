@@ -58,6 +58,15 @@ const FinanceLayout: React.FC = () => {
                     </div>
                     <div className="px-3">
                         <Link
+                            to="/finance/batches"
+                            className="flex items-center px-3 py-2 text-sm font-medium text-slate-700 rounded-lg hover:bg-slate-100"
+                        >
+                            <Building className="h-5 w-5 mr-3" />
+                            View Batches
+                        </Link>
+                    </div>
+                    <div className="px-3">
+                        <Link
                             to="/finance/settings"
                             className="flex items-center px-3 py-2 text-sm font-medium text-slate-700 rounded-lg hover:bg-slate-100"
                         >

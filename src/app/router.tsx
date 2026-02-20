@@ -199,6 +199,10 @@ const router = createBrowserRouter([
         path: 'payments',
         element: <PaymentList />,
       },
+      {
+        path: 'batches',
+        element: <BatchList />,
+      },
     ],
   },
   {

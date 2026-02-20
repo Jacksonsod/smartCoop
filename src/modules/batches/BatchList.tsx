@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 const BatchList: React.FC = () => {
-  const { currentCooperative, batches, harvests, farmers, fetchBatches, fetchHarvests, fetchFarmers, createBatch, isLoading } = useCooperativeStore();
+  const { currentUser, currentCooperative, batches, harvests, farmers, fetchBatches, fetchHarvests, fetchFarmers, createBatch, processBatchPayments, isLoading } = useCooperativeStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
@@ -182,6 +182,22 @@ const BatchList: React.FC = () => {
                             <p className="text-sm">{uniqueFarmers.length} farmer(s)</p>
                           </div>
                         </div>
+
+                        {currentUser?.role === 'FINANCE_OFFICER' && batch.status !== 'COMPLETED' && (
+                          <div className="mt-6">
+                            <Button
+                              onClick={() => {
+                                if (confirm('Calculate and process payments for all farmers in this batch?')) {
+                                  processBatchPayments(batch.id);
+                                }
+                              }}
+                              disabled={isLoading}
+                              className="w-full md:w-auto"
+                            >
+                              Process Payments
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <h4 className="font-semibold mb-3">Harvest Details</h4>

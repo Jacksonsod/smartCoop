@@ -57,6 +57,7 @@ interface CooperativeActions {
   fetchBatches: () => Promise<void>;
   createBatch: (batchData: Omit<Batch, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateBatch: (id: string, updates: Partial<Batch>) => Promise<void>;
+  processBatchPayments: (batchId: string) => Promise<void>;
 
   // Prices
   fetchPrices: () => Promise<void>;
@@ -716,6 +717,46 @@ export const useCooperativeStore = create<CooperativeStore>()(
           }));
         } catch (error) {
           set({ error: (error as Error).message, isLoading: false });
+        }
+      },
+
+      processBatchPayments: async (batchId: string) => {
+        set({ isLoading: true });
+        try {
+          const { batches, harvests, prices, createPayment, updateBatch } = get();
+          const batch = batches.find(b => b.id === batchId);
+          if (!batch) throw new Error('Batch not found');
+
+          const batchHarvests = harvests.filter(h => batch.harvestIds.includes(h.id));
+
+          for (const harvest of batchHarvests) {
+            // Find price for this crop type
+            const priceConfig = prices.find(p => p.cropType === harvest.crop);
+            if (!priceConfig) throw new Error(`Price not configured for ${harvest.crop}`);
+
+            const pricePerKg = priceConfig.pricePerKg[harvest.grade];
+            const amount = harvest.weight * pricePerKg;
+
+            await createPayment({
+              farmerId: harvest.farmerId,
+              batchId: batch.id,
+              amount,
+              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+              status: 'PENDING',
+              tenantId: batch.tenantId,
+              farmerName: undefined, // Will be filled by UI or joining
+              cropType: harvest.crop,
+              weight: harvest.weight,
+              grade: harvest.grade,
+              harvestDate: harvest.harvestDate
+            });
+          }
+
+          await updateBatch(batch.id, { status: 'COMPLETED' });
+          set({ isLoading: false });
+        } catch (error) {
+          set({ error: (error as Error).message, isLoading: false });
+          throw error;
         }
       },
     }),
