@@ -82,7 +82,7 @@ const BatchList: React.FC = () => {
     }
   };
 
-  const availableHarvests = harvests.filter((h: Harvest) => h.status === 'PROCESSED' && !batches.some((b: Batch) => b.harvestIds.includes(h.id)));
+  const availableHarvests = harvests.filter((h: Harvest) => (h.status === 'APPROVED' || h.status === 'PROCESSED') && !batches.some((b: Batch) => b.harvestIds.includes(h.id)));
 
   const filteredBatches = batches.filter((batch: Batch) =>
     batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||

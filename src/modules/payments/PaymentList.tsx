@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 const PaymentList: React.FC = () => {
-  const { payments, farmers, fetchPayments, fetchFarmers, updatePayment, isLoading } = useCooperativeStore();
+  const { payments, farmers, fetchPayments, fetchFarmers, fetchHarvests, updatePayment, isLoading } = useCooperativeStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<PaymentStatus | ''>('');
   const [page, setPage] = useState(1);
