@@ -1,50 +1,39 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
-import Topbar from './Topbar';
 
-const drawerWidth = 240;
-
-interface DashboardLayoutProps {
-  children?: React.ReactNode;
-}
-
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+const DashboardLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  console.log('=== DASHBOARD LAYOUT ===');
-  console.log('Children:', children);
-  console.log('MobileOpen:', mobileOpen);
 
   const handleDrawerToggle = (): void => {
     setMobileOpen(!mobileOpen);
   };
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <Topbar
-        onMenuClick={handleDrawerToggle}
-        showMenuButton
-      />
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Sidebar open={mobileOpen} />
-      </Box>
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8, // Account for topbar height
-        }}
-      >
-        <Outlet />
-      </Box>
-    </Box>
+    <div className="flex h-screen bg-gray-50">
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+          onClick={handleDrawerToggle}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed inset-y-0 left-0 z-50 lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <Sidebar open={true} />
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 overflow-auto">
+        <div className="min-h-screen p-6">
+          <Outlet />
+        </div>
+      </div>
+    </div>
   );
 };
 

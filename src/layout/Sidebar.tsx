@@ -1,72 +1,77 @@
 import React from 'react';
-import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  Box,
-  Divider,
-} from '@mui/material';
-import {
-  Dashboard as DashboardIcon,
-  People as PeopleIcon,
-  Agriculture as AgricultureIcon,
-  Inventory as InventoryIcon,
-  Payment as PaymentIcon,
-  AttachMoney as AttachMoneyIcon,
-} from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserRole, NavigationItem } from '../types';
-
-const drawerWidth = 240;
+import { NavigationItem } from '../types';
+import {
+  LayoutDashboard,
+  Users,
+  Wheat,
+  Package,
+  CreditCard,
+  DollarSign,
+  Database,
+} from 'lucide-react';
 
 const navigationItems: NavigationItem[] = [
+  // Super Admin routes
   {
-    text: 'Dashboard',
+    text: 'System Dashboard',
     path: '/dashboard',
     icon: 'Dashboard',
+    roles: ['SUPER_ADMIN'],
+  },
+  {
+    text: 'Cooperative Dashboard',
+    path: '/coop-dashboard',
+    icon: 'Dashboard',
+    roles: ['COOPERATIVE_ADMIN', 'CLERK', 'FINANCE_OFFICER', 'QUALITY_INSPECTOR', 'FARMER'],
   },
   {
     text: 'Farmers',
     path: '/farmers',
-    icon: 'People',
+    icon: 'Users',
+    roles: ['COOPERATIVE_ADMIN', 'CLERK', 'QUALITY_INSPECTOR', 'FARMER'],
   },
   {
     text: 'Harvests',
     path: '/harvests',
-    icon: 'Agriculture',
+    icon: 'Wheat',
+    roles: ['COOPERATIVE_ADMIN', 'CLERK', 'QUALITY_INSPECTOR', 'FARMER'],
   },
   {
     text: 'Batches',
     path: '/batches',
-    icon: 'Inventory',
+    icon: 'Package',
+    roles: ['COOPERATIVE_ADMIN', 'CLERK', 'QUALITY_INSPECTOR', 'FARMER'],
   },
   {
     text: 'Payments',
     path: '/payments',
-    icon: 'Payment',
-    roles: ['COOP_ADMIN', 'FINANCE', 'SUPER_ADMIN'],
+    icon: 'CreditCard',
+    roles: ['COOPERATIVE_ADMIN', 'FINANCE_OFFICER'],
   },
   {
     text: 'Daily Prices',
     path: '/prices',
-    icon: 'Price',
-    roles: ['COOP_ADMIN', 'SUPER_ADMIN'],
+    icon: 'DollarSign',
+    roles: ['COOPERATIVE_ADMIN'],
+  },
+  {
+    text: 'Data Management',
+    path: '/data-management',
+    icon: 'Database',
+    roles: ['COOPERATIVE_ADMIN'],
   },
 ];
 
 const iconMap: { [key: string]: React.ReactElement } = {
-  Dashboard: <DashboardIcon />,
-  People: <PeopleIcon />,
-  Agriculture: <AgricultureIcon />,
-  Inventory: <InventoryIcon />,
-  Payment: <PaymentIcon />,
-  Price: <AttachMoneyIcon />,
+  Dashboard: <LayoutDashboard className="w-5 h-5" />,
+  Users: <Users className="w-5 h-5" />,
+  Wheat: <Wheat className="w-5 h-5" />,
+  Package: <Package className="w-5 h-5" />,
+  CreditCard: <CreditCard className="w-5 h-5" />,
+  DollarSign: <DollarSign className="w-5 h-5" />,
+  Database: <Database className="w-5 h-5" />,
 };
 
 interface SidebarProps {
@@ -79,8 +84,6 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true }) => {
   const { user } = useAuth();
 
   const handleNavigation = (path: string): void => {
-    console.log('=== SIDEBAR NAVIGATION ===');
-    console.log('Navigating to:', path);
     navigate(path);
   };
 
@@ -91,77 +94,67 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true }) => {
     return user ? item.roles.includes(user.role) : false;
   });
 
+  if (!open) return null;
+
   return (
-    <Drawer
-      variant="persistent"
-      anchor="left"
-      open={open}
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-        },
-      }}
-    >
-      <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AgricultureIcon color="primary" fontSize="large" />
-          <Typography variant="h6" noWrap component="div" color="primary">
-            Smart Coop
-          </Typography>
-        </Box>
-      </Toolbar>
-      <Divider />
-      <List sx={{ px: 1 }}>
-        {filteredNavigationItems.map((item) => (
-          <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              onClick={() => handleNavigation(item.path)}
-              selected={location.pathname === item.path}
-              sx={{
-                borderRadius: 1,
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'primary.contrastText',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: 'primary.contrastText',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 40 }}>
-                {iconMap[item.icon]}
-              </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontWeight: location.pathname === item.path ? 600 : 400,
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-      <Box sx={{ flexGrow: 1 }} />
+    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <Wheat className="w-8 h-8 text-green-600" />
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">SmartCoop</h1>
+            <p className="text-sm text-gray-600">Agricultural Management</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {filteredNavigationItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <li key={item.path}>
+                <button
+                  onClick={() => handleNavigation(item.path)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${isActive
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                >
+                  <span className={isActive ? 'text-blue-600' : 'text-gray-500'}>
+                    {iconMap[item.icon]}
+                  </span>
+                  <span className="font-medium">{item.text}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* User Info */}
       {user && (
-        <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Typography variant="body2" color="text.secondary">
-            Logged in as:
-          </Typography>
-          <Typography variant="body2" fontWeight={600}>
-            {user.username}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {user.role}
-          </Typography>
-        </Box>
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-sm font-semibold text-blue-600">
+                {user.username.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {user.username}
+              </p>
+              <p className="text-xs text-gray-600 capitalize">
+                {user.role.replace('_', ' ').toLowerCase()}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
-    </Drawer>
+    </div>
   );
 };
 

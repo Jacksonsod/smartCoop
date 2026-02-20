@@ -1,35 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Chip,
-  Button,
-  CircularProgress,
-  Alert,
-  Divider,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  Edit as EditIcon,
-  Agriculture as AgricultureIcon,
-  Email as EmailIcon,
-  Phone as PhoneIcon,
-  LocationOn as LocationOnIcon,
-} from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { farmersApi, harvestsApi } from '../../services/mockApi';
 import { Farmer, Harvest } from '../../types';
+import {
+  Button,
+  Card,
+  CardContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHeadCell,
+  Badge
+} from '../../components';
+import {
+  ArrowLeft,
+  Edit,
+  Wheat,
+  Mail,
+  Phone,
+  MapPin,
+} from 'lucide-react';
 
 const FarmerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -86,197 +79,163 @@ const FarmerDetails: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-48">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
         {error}
-      </Alert>
+      </div>
     );
   }
 
   if (!farmer) {
     return (
-      <Alert severity="info" sx={{ mb: 2 }}>
+      <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
         Farmer not found.
-      </Alert>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/farmers')}
-          sx={{ mr: 2 }}
-        >
+    <div>
+      <div className="flex items-center mb-6">
+        <Button onClick={() => navigate('/farmers')} className="mr-4">
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Farmers
         </Button>
-        <Button
-          variant="outlined"
-          startIcon={<EditIcon />}
-          onClick={() => navigate(`/farmers/${farmer.id}/edit`)}
-        >
+        <Button variant="secondary" onClick={() => navigate(`/farmers/${farmer.id}/edit`)}>
+          <Edit className="w-4 h-4 mr-2" />
           Edit Farmer
         </Button>
-      </Box>
+      </div>
 
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Farmer Information */}
-        <Grid item xs={12} md={6}>
+        <div>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>
-                Farmer Information
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Name
-                </Typography>
-                <Typography variant="body1" fontWeight={600}>
-                  {farmer.name}
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <EmailIcon fontSize="small" /> Email
-                </Typography>
-                <Typography variant="body1">
-                  {farmer.email}
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <PhoneIcon fontSize="small" /> Phone
-                </Typography>
-                <Typography variant="body1">
-                  {farmer.phone}
-                </Typography>
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <LocationOnIcon fontSize="small" /> Address
-                </Typography>
-                <Typography variant="body1">
-                  {farmer.address}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <AgricultureIcon fontSize="small" /> Farm Size
-                </Typography>
-                <Chip
-                  label={`${farmer.farmSize} hectares`}
-                  color="primary"
-                  variant="outlined"
-                />
-              </Box>
+              <h2 className="text-lg font-semibold mb-4">Farmer Information</h2>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600">Name</p>
+                <p className="font-semibold">{farmer.name}</p>
+              </div>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 flex items-center gap-1">
+                  <Mail className="w-4 h-4" /> Email
+                </p>
+                <p>{farmer.email}</p>
+              </div>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 flex items-center gap-1">
+                  <Phone className="w-4 h-4" /> Phone
+                </p>
+                <p>{farmer.phone}</p>
+              </div>
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" /> Address
+                </p>
+                <p>{farmer.address}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 flex items-center gap-1">
+                  <Wheat className="w-4 h-4" /> Farm Size
+                </p>
+                <Badge>{farmer.farmSize} hectares</Badge>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Harvest Statistics */}
-        <Grid item xs={12} md={6}>
+        <div>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>
-                Harvest Statistics
-              </Typography>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Total Harvest Weight
-                </Typography>
-                <Typography variant="h4" color="primary" fontWeight={600}>
-                  {getTotalHarvestWeight().toLocaleString()} kg
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Harvest by Crop Type
-              </Typography>
+              <h2 className="text-lg font-semibold mb-4">Harvest Statistics</h2>
+              <div className="mb-4">
+                <p className="text-sm text-gray-600">Total Harvest Weight</p>
+                <p className="text-2xl font-bold text-blue-600">{getTotalHarvestWeight().toLocaleString()} kg</p>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Harvest by Crop Type</p>
               {getHarvestStats().length > 0 ? (
                 getHarvestStats().map((stat) => (
-                  <Box key={stat.crop} sx={{ mb: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2">{stat.crop}</Typography>
-                      <Typography variant="body2" fontWeight={600}>
+                  <div key={stat.crop} className="mb-2">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm">{stat.crop}</p>
+                      <p className="text-sm font-semibold">
                         {stat.weight.toLocaleString()} kg ({stat.percentage}%)
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
                 ))
               ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No harvests recorded yet.
-                </Typography>
+                <p className="text-sm text-gray-500">No harvests recorded yet.</p>
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Recent Harvests */}
-        <Grid item xs={12}>
+        <div className="md:col-span-2">
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom fontWeight={600}>
+              <h3 className="text-lg font-semibold mb-4">
                 Recent Harvests ({harvests.length})
-              </Typography>
+              </h3>
               {harvests.length > 0 ? (
-                <TableContainer component={Paper} variant="outlined">
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Crop</TableCell>
-                        <TableCell>Weight (kg)</TableCell>
-                        <TableCell>Grade</TableCell>
-                        <TableCell>Status</TableCell>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHeadCell>Date</TableHeadCell>
+                      <TableHeadCell>Crop</TableHeadCell>
+                      <TableHeadCell>Weight (kg)</TableHeadCell>
+                      <TableHeadCell>Grade</TableHeadCell>
+                      <TableHeadCell>Status</TableHeadCell>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {harvests.slice(0, 5).map((harvest) => (
+                      <TableRow key={harvest.id}>
+                        <TableCell>
+                          {new Date(harvest.harvestDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="gray">{harvest.crop}</Badge>
+                        </TableCell>
+                        <TableCell>{harvest.weight.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={harvest.grade === 'A' ? 'success' : harvest.grade === 'B' ? 'warning' : 'gray'}
+                          >
+                            {harvest.grade}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={harvest.status === 'APPROVED' ? 'success' : harvest.status === 'PENDING_VERIFICATION' ? 'warning' : 'gray'}
+                          >
+                            {harvest.status}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {harvests.slice(0, 5).map((harvest) => (
-                        <TableRow key={harvest.id}>
-                          <TableCell>
-                            {new Date(harvest.harvestDate).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={harvest.crop} size="small" variant="outlined" />
-                          </TableCell>
-                          <TableCell>{harvest.weight.toLocaleString()}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={harvest.grade}
-                              size="small"
-                              color={harvest.grade === 'A' ? 'success' : harvest.grade === 'B' ? 'warning' : 'default'}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={harvest.status}
-                              size="small"
-                              color={harvest.status === 'COMPLETED' ? 'success' : harvest.status === 'PROCESSING' ? 'warning' : 'default'}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                    ))}
+                  </TableBody>
+                </Table>
               ) : (
-                <Typography variant="body2" color="text.secondary">
+                <p className="text-sm text-gray-500">
                   No harvests recorded for this farmer yet.
-                </Typography>
+                </p>
               )}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 

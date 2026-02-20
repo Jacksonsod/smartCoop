@@ -1,36 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Chip,
-  TextField,
-  InputAdornment,
-  CircularProgress,
-  Alert,
-  Pagination,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-} from '@mui/material';
-import {
-  Search as SearchIcon,
-  Add as AddIcon,
-  Visibility as VisibilityIcon,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { harvestsApi, farmersApi } from '../../services/mockApi';
-import { Harvest, Farmer, CropType, Grade } from '../../types';
+import { Harvest, Farmer, CropType } from '../../types';
+import {
+  Button,
+  Card,
+  CardContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHeadCell,
+  Badge,
+  Input,
+  Select
+} from '../../components';
+import {
+  Search,
+  Plus,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 
 const HarvestList: React.FC = () => {
   const navigate = useNavigate();
@@ -86,11 +79,11 @@ const HarvestList: React.FC = () => {
 
   const filteredHarvests = harvests.filter(harvest => {
     const farmerName = getFarmerName(harvest.farmerId);
-    const matchesSearch = 
+    const matchesSearch =
       farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       harvest.crop.toLowerCase().includes(searchTerm.toLowerCase()) ||
       harvest.weight.toString().includes(searchTerm);
-    
+
     const matchesCrop = !filterCrop || harvest.crop === filterCrop;
     const matchesStatus = !filterStatus || harvest.status === filterStatus;
 
@@ -102,197 +95,162 @@ const HarvestList: React.FC = () => {
     page * rowsPerPage
   );
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number): void => {
-    setPage(value);
-  };
-
-  const getGradeColor = (grade: Grade): 'success' | 'warning' | 'default' => {
-    switch (grade) {
-      case 'A': return 'success';
-      case 'B': return 'warning';
-      case 'C': return 'default';
-      default: return 'default';
-    }
-  };
-
-  const getStatusColor = (status: string): 'success' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'COMPLETED': return 'success';
-      case 'PROCESSING': return 'warning';
-      case 'PENDING': return 'info';
-      default: return 'default';
-    }
-  };
-
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-48">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
         {error}
-      </Alert>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" gutterBottom fontWeight={600}>
-          Harvests
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/harvests/add')}
-        >
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Harvests</h1>
+        <Button onClick={() => navigate('/harvests/add')}>
+          <Plus className="w-4 h-4 mr-2" />
           Add Harvest
         </Button>
-      </Box>
+      </div>
 
-      <Card sx={{ mb: 3 }}>
+      <Card className="mb-6">
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <TextField
-              placeholder="Search harvests..."
-              value={searchTerm}
-              onChange={handleSearch}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ minWidth: 250, flexGrow: 1 }}
-            />
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Crop Type</InputLabel>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-64">
+              <Input
+                placeholder="Search harvests..."
+                value={searchTerm}
+                onChange={handleSearch}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
+            <div className="min-w-40">
               <Select
                 value={filterCrop}
-                label="Crop Type"
-                onChange={(e) => setFilterCrop(e.target.value as CropType | '')}
-              >
-                <MenuItem value="">All Crops</MenuItem>
-                {cropTypes.map((crop) => (
-                  <MenuItem key={crop} value={crop}>
-                    {crop}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Status</InputLabel>
+                onChange={(value) => setFilterCrop(value as CropType | '')}
+                options={[
+                  { value: '', label: 'All Crops' },
+                  ...cropTypes.map(crop => ({ value: crop, label: crop }))
+                ]}
+                placeholder="Crop Type"
+              />
+            </div>
+            <div className="min-w-40">
               <Select
                 value={filterStatus}
-                label="Status"
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <MenuItem value="">All Status</MenuItem>
-                {statusOptions.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+                onChange={(value) => setFilterStatus(value)}
+                options={[
+                  { value: '', label: 'All Status' },
+                  ...statusOptions.map(status => ({ value: status, label: status }))
+                ]}
+                placeholder="Status"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Farmer</TableCell>
-                  <TableCell>Crop</TableCell>
-                  <TableCell>Weight (kg)</TableCell>
-                  <TableCell>Grade</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedHarvests.length > 0 ? (
-                  paginatedHarvests.map((harvest) => (
-                    <TableRow key={harvest.id} hover>
-                      <TableCell>
-                        {new Date(harvest.harvestDate).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          {getFarmerName(harvest.farmerId)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={harvest.crop} size="small" variant="outlined" />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          {harvest.weight.toLocaleString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={harvest.grade}
-                          size="small"
-                          color={getGradeColor(harvest.grade)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={harvest.status}
-                          size="small"
-                          color={getStatusColor(harvest.status)}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Button
-                          size="small"
-                          startIcon={<VisibilityIcon />}
-                          onClick={() => navigate(`/harvests/${harvest.id}`)}
-                        >
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        {searchTerm || filterCrop || filterStatus 
-                          ? 'No harvests found matching your filters.' 
-                          : 'No harvests recorded yet.'}
-                      </Typography>
+      <Card padding="none">
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHeadCell>Date</TableHeadCell>
+                <TableHeadCell>Farmer</TableHeadCell>
+                <TableHeadCell>Crop</TableHeadCell>
+                <TableHeadCell>Weight (kg)</TableHeadCell>
+                <TableHeadCell>Grade</TableHeadCell>
+                <TableHeadCell>Status</TableHeadCell>
+                <TableHeadCell className="text-center">Actions</TableHeadCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedHarvests.length > 0 ? (
+                paginatedHarvests.map((harvest) => (
+                  <TableRow key={harvest.id}>
+                    <TableCell>
+                      {new Date(harvest.harvestDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold">{getFarmerName(harvest.farmerId)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="gray">{harvest.crop}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold">{harvest.weight.toLocaleString()}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={harvest.grade === 'A' ? 'success' : harvest.grade === 'B' ? 'warning' : 'error'}>
+                        {harvest.grade}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={harvest.status === 'PROCESSED' ? 'success' : harvest.status === 'BATCHED' ? 'info' : 'warning'}>
+                        {harvest.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/harvests/${harvest.id}`)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-3 text-gray-500">
+                    {searchTerm || filterCrop || filterStatus
+                      ? 'No harvests found matching your filters.'
+                      : 'No harvests recorded yet.'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
 
           {filteredHarvests.length > rowsPerPage && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <Pagination
-                count={Math.ceil(filteredHarvests.length / rowsPerPage)}
-                page={page}
-                onChange={handlePageChange}
-                color="primary"
-              />
-            </Box>
+            <div className="flex justify-center p-4">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Page {page} of {Math.ceil(filteredHarvests.length / rowsPerPage)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === Math.ceil(filteredHarvests.length / rowsPerPage)}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

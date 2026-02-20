@@ -1,248 +1,181 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Box,
-    Card,
-    CardContent,
-    Typography,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Button,
-    TextField,
-    InputAdornment,
-    CircularProgress,
-    Alert,
-    MenuItem,
-    Grid,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    FormControl,
-    InputLabel,
-    Select,
-} from '@mui/material';
-import {
-    Add as AddIcon,
-    AttachMoney as AttachMoneyIcon,
-    History as HistoryIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
-import { pricesApi } from '../../services/mockApi';
-import { Price, CropType } from '../../types';
+import { useCooperativeStore } from '../../store/cooperativeStore';
+import { Card, CardContent, Button, Input } from '../../components';
+import { Plus, DollarSign, TrendingUp, Calendar, Loader2 } from 'lucide-react';
+import { Price } from '../../types';
 
 const PriceConfig: React.FC = () => {
-    const { user } = useAuth();
-    const [prices, setPrices] = useState<Price[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [openDialog, setOpenDialog] = useState(false);
-    const [saving, setSaving] = useState(false);
-
-    // Form State
-    const [selectedCrop, setSelectedCrop] = useState<CropType | ''>('');
-    const [pricePerKg, setPricePerKg] = useState<string>('');
-    const [effectiveDate, setEffectiveDate] = useState<string>(
-        new Date().toISOString().split('T')[0]
-    );
-
-    const cropTypes: CropType[] = ['MAIZE', 'WHEAT', 'RICE', 'SOYBEANS', 'COTTON'];
-
-    const fetchPrices = async () => {
-        if (!user) return;
-        try {
-            setLoading(true);
-            const response = await pricesApi.getPrices(user.tenantId);
-            setPrices(response.data);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch prices');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { currentCooperative, prices, fetchPrices, updatePrices, isLoading } = useCooperativeStore();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        cropType: 'MAIZE',
+        gradeA: '',
+        gradeB: '',
+        gradeC: '',
+    });
 
     useEffect(() => {
         fetchPrices();
-    }, [user]);
+    }, [fetchPrices]);
 
-    const handleSavePrice = async () => {
-        if (!user || !selectedCrop || !pricePerKg) return;
+    const cropTypes = ['MAIZE', 'WHEAT', 'RICE', 'SOYBEANS', 'COTTON'];
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentCooperative) return;
 
         try {
-            setSaving(true);
-            await pricesApi.createPrice({
-                crop: selectedCrop,
-                pricePerKg: parseFloat(pricePerKg),
-                effectiveDate: new Date(effectiveDate).toISOString(),
-                tenantId: user.tenantId,
-            });
+            const newPrice: Price = {
+                id: `price-${Date.now()}`,
+                tenantId: currentCooperative.id,
+                cropType: formData.cropType,
+                pricePerKg: {
+                    A: Number(formData.gradeA),
+                    B: Number(formData.gradeB),
+                    C: Number(formData.gradeC),
+                },
+                currency: 'USD',
+                status: 'ACTIVE',
+                effectiveDate: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
 
-            await fetchPrices();
-            setOpenDialog(false);
-            resetForm();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to save price');
-        } finally {
-            setSaving(false);
+            const updatedPrices = [newPrice, ...prices];
+            await updatePrices(updatedPrices);
+
+            setIsModalOpen(false);
+            setFormData({ cropType: 'MAIZE', gradeA: '', gradeB: '', gradeC: '' });
+        } catch (error) {
+            console.error('Failed to create price:', error);
         }
     };
 
-    const resetForm = () => {
-        setSelectedCrop('');
-        setPricePerKg('');
-        setEffectiveDate(new Date().toISOString().split('T')[0]);
-    };
-
-    const getLatestPrices = () => {
-        const latest: Record<string, Price> = {};
-        prices.forEach(p => {
-            if (!latest[p.crop] || new Date(p.effectiveDate) > new Date(latest[p.crop].effectiveDate)) {
-                latest[p.crop] = p;
-            }
-        });
-        return Object.values(latest);
-    };
-
-    if (loading && prices.length === 0) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                <CircularProgress />
-            </Box>
-        );
-    }
-
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Typography variant="h4" fontWeight={600}>
-                    Daily Crop Prices
-                </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setOpenDialog(true)}
-                >
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Price Configuration</h1>
+                    <p className="text-slate-600">Manage daily crop prices for {currentCooperative?.name}</p>
+                </div>
+                <Button onClick={() => setIsModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
                     Set New Price
                 </Button>
-            </Box>
+            </div>
 
-            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-                {getLatestPrices().map((price) => (
-                    <Grid item xs={12} sm={6} md={2.4} key={price.crop}>
-                        <Card sx={{ height: '100%' }}>
+            {isLoading ? (
+                <div className="flex justify-center p-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {prices.map((price) => (
+                        <Card key={price.id} className="hover:shadow-lg transition-shadow">
                             <CardContent>
-                                <Typography color="textSecondary" gutterBottom>
-                                    {price.crop}
-                                </Typography>
-                                <Typography variant="h5" fontWeight={600}>
-                                    ${price.pricePerKg.toFixed(2)} / kg
-                                </Typography>
-                                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                                    Effective: {new Date(price.effectiveDate).toLocaleDateString()}
-                                </Typography>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900">{price.cropType}</h3>
+                                        <div className="flex items-center text-sm text-slate-500 mt-1">
+                                            <Calendar className="h-4 w-4 mr-1" />
+                                            {new Date(price.effectiveDate).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                    <div className={`p-2 rounded-full ${price.status === 'ACTIVE' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                                        <TrendingUp className="h-5 w-5" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                        <span className="text-sm font-medium text-slate-700">Grade A</span>
+                                        <span className="text-sm font-bold text-green-700">{price.pricePerKg.A} {price.currency}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                        <span className="text-sm font-medium text-slate-700">Grade B</span>
+                                        <span className="text-sm font-bold text-green-600">{price.pricePerKg.B} {price.currency}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                        <span className="text-sm font-medium text-slate-700">Grade C</span>
+                                        <span className="text-sm font-bold text-green-500">{price.pricePerKg.C} {price.currency}</span>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
-                    </Grid>
-                ))}
-            </Grid>
+                    ))}
+                    {prices.length === 0 && (
+                        <div className="col-span-full text-center py-12 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                            <DollarSign className="h-12 w-12 text-slate-400 mx-auto mb-3" />
+                            <h3 className="text-lg font-medium text-slate-900">No Prices Configured</h3>
+                            <p className="text-slate-500">Set up your first crop price to get started.</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
-            <Card>
-                <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <HistoryIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                        <Typography variant="h6">Price History</Typography>
-                    </Box>
-                    <TableContainer>
-                        <Table>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>Date Set</TableCell>
-                                    <TableCell>Effective Date</TableCell>
-                                    <TableCell>Crop</TableCell>
-                                    <TableCell>Price / Kg</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {prices.map((price) => (
-                                    <TableRow key={price.id}>
-                                        <TableCell>{new Date(price.createdAt).toLocaleDateString()}</TableCell>
-                                        <TableCell>{new Date(price.effectiveDate).toLocaleDateString()}</TableCell>
-                                        <TableCell>{price.crop}</TableCell>
-                                        <TableCell>
-                                            <Typography fontWeight={600}>
-                                                ${price.pricePerKg.toFixed(2)}
-                                            </Typography>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {prices.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={4} align="center">
-                                            No price history available.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </CardContent>
-            </Card>
+            {/* Add Price Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg max-w-md w-full p-6">
+                        <h2 className="text-lg font-bold mb-4">Set New Price</h2>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Crop Type</label>
+                                <select
+                                    className="w-full rounded-md border border-slate-300 p-2"
+                                    value={formData.cropType}
+                                    onChange={(e) => setFormData({ ...formData, cropType: e.target.value })}
+                                >
+                                    {cropTypes.map(crop => (
+                                        <option key={crop} value={crop}>{crop}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-            <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-                <DialogTitle>Set Daily Price</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <FormControl fullWidth>
-                            <InputLabel>Crop Type</InputLabel>
-                            <Select
-                                value={selectedCrop}
-                                label="Crop Type"
-                                onChange={(e) => setSelectedCrop(e.target.value as CropType)}
-                            >
-                                {cropTypes.map((crop) => (
-                                    <MenuItem key={crop} value={crop}>{crop}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Grade A</label>
+                                    <Input
+                                        type="number"
+                                        required
+                                        placeholder="0"
+                                        value={formData.gradeA}
+                                        onChange={(e) => setFormData({ ...formData, gradeA: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Grade B</label>
+                                    <Input
+                                        type="number"
+                                        required
+                                        placeholder="0"
+                                        value={formData.gradeB}
+                                        onChange={(e) => setFormData({ ...formData, gradeB: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Grade C</label>
+                                    <Input
+                                        type="number"
+                                        required
+                                        placeholder="0"
+                                        value={formData.gradeC}
+                                        onChange={(e) => setFormData({ ...formData, gradeC: e.target.value })}
+                                    />
+                                </div>
+                            </div>
 
-                        <TextField
-                            label="Price per Kg"
-                            type="number"
-                            value={pricePerKg}
-                            onChange={(e) => setPricePerKg(e.target.value)}
-                            InputProps={{
-                                startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                            }}
-                            fullWidth
-                        />
-
-                        <TextField
-                            label="Effective Date"
-                            type="date"
-                            value={effectiveDate}
-                            onChange={(e) => setEffectiveDate(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            fullWidth
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleSavePrice}
-                        variant="contained"
-                        disabled={!selectedCrop || !pricePerKg || saving}
-                    >
-                        {saving ? 'Saving...' : 'Save Price'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </Box>
+                            <div className="flex justify-end gap-2 mt-6">
+                                <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit">Save Price</Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

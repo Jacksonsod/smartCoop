@@ -1,6 +1,6 @@
 # Smart Coop - Agricultural Cooperative Management System
 
-A comprehensive frontend application for managing agricultural cooperatives, built with React 18, TypeScript, and Material UI.
+A comprehensive frontend application for managing agricultural cooperatives, built with React 18, TypeScript, and Tailwind CSS.
 
 ## 🚀 Features
 
@@ -8,7 +8,7 @@ A comprehensive frontend application for managing agricultural cooperatives, bui
 - **Multi-tenant Architecture**: Support for multiple agricultural cooperatives
 - **Role-based Access Control**: Admin, Clerk, and Finance roles with specific permissions
 - **Mock API System**: Simulated backend with realistic data and API delays
-- **Responsive Design**: Mobile-first approach with Material UI components
+- **Responsive Design**: Mobile-first approach with Tailwind CSS components
 
 ### Modules
 - **Dashboard**: Overview with key metrics and statistics
@@ -22,7 +22,7 @@ A comprehensive frontend application for managing agricultural cooperatives, bui
 - **Frontend**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Routing**: React Router v6
-- **UI Framework**: Material UI (MUI) v5
+- **UI Framework**: Tailwind CSS
 - **State Management**: React Context API
 - **HTTP Client**: Axios (mocked)
 - **Code Quality**: ESLint + Prettier
@@ -55,7 +55,7 @@ src/
 │   └── index.ts
 ├── data/                 # Mock data
 │   └── mockData.ts
-└── theme/                # Material UI theme
+└── theme/                # Tailwind CSS theme
     └── theme.ts
 ```
 
@@ -123,7 +123,7 @@ The application includes comprehensive mock data:
 ## 🎨 UI/UX Features
 
 - **Responsive Design**: Works on desktop, tablet, and mobile
-- **Dark/Light Theme**: Material UI theme system
+- **Dark/Light Theme**: Tailwind CSS theme system
 - **Loading States**: Proper loading indicators
 - **Error Handling**: User-friendly error messages
 - **Form Validation**: Client-side validation with error messages

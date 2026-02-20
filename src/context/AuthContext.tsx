@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { User, AuthState, LoginCredentials } from '../types';
 import { authApi } from '../services/mockApi';
@@ -93,19 +94,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: LoginCredentials): Promise<void> => {
     console.log('=== AUTH CONTEXT LOGIN ===');
     console.log('Credentials received:', credentials);
-    
+
     try {
       console.log('Dispatching LOGIN_START');
       dispatch({ type: 'LOGIN_START' });
-      
+
       console.log('Calling authApi.login...');
       const response = await authApi.login(credentials);
       console.log('authApi.login response:', response);
-      
+
       // Store user in localStorage
       localStorage.setItem('smartcoop_user', JSON.stringify(response.data));
       console.log('User stored in localStorage');
-      
+
       console.log('Dispatching LOGIN_SUCCESS');
       dispatch({ type: 'LOGIN_SUCCESS', payload: response.data });
       console.log('Login process completed');

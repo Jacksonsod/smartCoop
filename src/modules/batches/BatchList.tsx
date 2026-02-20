@@ -1,73 +1,43 @@
 import React, { useState, useEffect } from 'react';
+import { useCooperativeStore } from '../../store/cooperativeStore';
+import { Batch, Harvest, Farmer, Grade } from '../../types';
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  CircularProgress,
-  Alert,
-  Pagination,
-  TextField,
-  InputAdornment,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Grid,
-} from '@mui/material';
+  Badge,
+  Input,
+  Select,
+  Modal,
+  ModalHeader,
+  ModalContent,
+  ModalFooter,
+  Checkbox,
+} from '../../components';
 import {
-  Search as SearchIcon,
-  ExpandMore as ExpandMoreIcon,
-  Inventory as InventoryIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
-import { batchesApi, harvestsApi, farmersApi } from '../../services/mockApi';
-import { Batch, Harvest, Farmer, Grade } from '../../types';
+  Search,
+  ChevronDown,
+  Package,
+  Plus,
+} from 'lucide-react';
 
 const BatchList: React.FC = () => {
-  const { user } = useAuth();
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [harvests, setHarvests] = useState<Harvest[]>([]);
-  const [farmers, setFarmers] = useState<Farmer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { currentCooperative, batches, harvests, farmers, fetchBatches, fetchHarvests, fetchFarmers, createBatch, isLoading } = useCooperativeStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+  const [expandedBatch, setExpandedBatch] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [selectedHarvests, setSelectedHarvests] = useState<string[]>([]);
+  const [batchGrade, setBatchGrade] = useState<Grade | ''>('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async (): Promise<void> => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [batchesResponse, harvestsResponse, farmersResponse] = await Promise.all([
-          batchesApi.getBatches(user.tenantId),
-          harvestsApi.getHarvests(user.tenantId),
-          farmersApi.getFarmers(user.tenantId),
-        ]);
-
-        setBatches(batchesResponse.data);
-        setHarvests(harvestsResponse.data);
-        setFarmers(farmersResponse.data);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch batches';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user]);
+    fetchBatches();
+    fetchHarvests();
+    fetchFarmers();
+  }, [fetchBatches, fetchHarvests, fetchFarmers]);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(event.target.value);
@@ -75,33 +45,46 @@ const BatchList: React.FC = () => {
   };
 
   const getHarvestsForBatch = (harvestIds: string[]): Harvest[] => {
-    return harvests.filter(h => harvestIds.includes(h.id));
+    return harvests.filter((h: Harvest) => harvestIds.includes(h.id));
   };
 
   const getFarmerName = (farmerId: string): string => {
-    const farmer = farmers.find(f => f.id === farmerId);
+    const farmer = farmers.find((f: Farmer) => f.id === farmerId);
     return farmer ? farmer.name : 'Unknown Farmer';
   };
 
-  const getStatusColor = (status: string): 'success' | 'warning' | 'info' | 'default' => {
-    switch (status) {
-      case 'COMPLETED': return 'success';
-      case 'PROCESSING': return 'warning';
-      case 'CREATED': return 'info';
-      default: return 'default';
+  const handleCreateBatch = async () => {
+    if (!currentCooperative || selectedHarvests.length === 0 || !batchGrade) return;
+
+    try {
+      setCreating(true);
+      const selectedHarvestData = harvests.filter(h => selectedHarvests.includes(h.id));
+      const totalWeight = selectedHarvestData.reduce((sum, h) => sum + h.weight, 0);
+      const batchNumber = `BATCH-${new Date().getFullYear()}-${String(batches.length + 1).padStart(3, '0')}`;
+
+      await createBatch({
+        batchNumber,
+        harvestIds: selectedHarvests,
+        totalWeight,
+        grade: batchGrade,
+        status: 'CREATED',
+        tenantId: currentCooperative.id,
+      });
+
+      setShowCreateModal(false);
+      setSelectedHarvests([]);
+      setBatchGrade('');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create batch';
+      setError(errorMessage);
+    } finally {
+      setCreating(false);
     }
   };
 
-  const getGradeColor = (grade: Grade): 'success' | 'warning' | 'default' => {
-    switch (grade) {
-      case 'A': return 'success';
-      case 'B': return 'warning';
-      case 'C': return 'default';
-      default: return 'default';
-    }
-  };
+  const availableHarvests = harvests.filter((h: Harvest) => h.status === 'PROCESSED' && !batches.some((b: Batch) => b.harvestIds.includes(h.id)));
 
-  const filteredBatches = batches.filter(batch =>
+  const filteredBatches = batches.filter((batch: Batch) =>
     batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     batch.totalWeight.toString().includes(searchTerm)
   );
@@ -111,186 +94,244 @@ const BatchList: React.FC = () => {
     page * rowsPerPage
   );
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number): void => {
-    setPage(value);
-  };
-
-  if (loading) {
+  if (isLoading && batches.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-48">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
         {error}
-      </Alert>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom fontWeight={600} sx={{ mb: 3 }}>
-        Batches
-      </Typography>
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Batches</h1>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Create Batch
+        </Button>
+      </div>
 
-      <Card sx={{ mb: 3 }}>
+      <Card className="mb-6">
         <CardContent>
-          <TextField
-            fullWidth
+          <Input
             placeholder="Search batches by batch number or weight..."
             value={searchTerm}
             onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
+            leftIcon={<Search className="w-4 h-4" />}
           />
         </CardContent>
       </Card>
 
       {paginatedBatches.length > 0 ? (
-        paginatedBatches.map((batch) => {
+        paginatedBatches.map((batch: Batch) => {
           const batchHarvests = getHarvestsForBatch(batch.harvestIds);
-          const uniqueFarmers = [...new Set(batchHarvests.map(h => h.farmerId))];
+          const uniqueFarmers = [...new Set(batchHarvests.map((h: Harvest) => h.farmerId))];
+          const isExpanded = expandedBatch === batch.id;
 
           return (
-            <Card key={batch.id} sx={{ mb: 2 }}>
-              <Accordion>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: 2 }}>
-                    <InventoryIcon color="primary" />
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" fontWeight={600}>
-                        {batch.batchNumber}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-                        <Chip
-                          label={`${batch.totalWeight.toLocaleString()} kg`}
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                        />
-                        <Chip
-                          label={`Grade ${batch.grade}`}
-                          size="small"
-                          color={getGradeColor(batch.grade)}
-                        />
-                        <Chip
-                          label={batch.status}
-                          size="small"
-                          color={getStatusColor(batch.status)}
-                        />
-                        <Chip
-                          label={`${batchHarvests.length} harvests`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </Box>
-                    </Box>
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Batch Information
-                      </Typography>
-                      <Box sx={{ mb: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Created Date
-                        </Typography>
-                        <Typography variant="body2">
-                          {new Date(batch.createdAt).toLocaleDateString()}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ mb: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Weight
-                        </Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          {batch.totalWeight.toLocaleString()} kg
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Farmers
-                        </Typography>
-                        <Typography variant="body2">
-                          {uniqueFarmers.length} farmer(s)
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Harvest Details
-                      </Typography>
-                      {batchHarvests.length > 0 ? (
-                        batchHarvests.map((harvest) => (
-                          <Box key={harvest.id} sx={{ mb: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Typography variant="body2" fontWeight={600}>
-                                {getFarmerName(harvest.farmerId)}
-                              </Typography>
-                              <Typography variant="body2">
-                                {harvest.weight.toLocaleString()} kg
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                              <Chip label={harvest.crop} size="small" variant="outlined" />
-                              <Chip
-                                label={`Grade ${harvest.grade}`}
-                                size="small"
-                                color={getGradeColor(harvest.grade)}
-                              />
-                            </Box>
-                          </Box>
-                        ))
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No harvests found for this batch.
-                        </Typography>
-                      )}
-                    </Grid>
-                  </Grid>
-                </AccordionDetails>
-              </Accordion>
+            <Card key={batch.id} className="mb-4">
+              <CardContent>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setExpandedBatch(isExpanded ? null : batch.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Package className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <h3 className="text-lg font-semibold">{batch.batchNumber}</h3>
+                      <div className="flex gap-2 mt-1">
+                        <Badge>{batch.totalWeight.toLocaleString()} kg</Badge>
+                        <Badge variant={batch.grade === 'A' ? 'success' : batch.grade === 'B' ? 'warning' : 'error'}>
+                          Grade {batch.grade}
+                        </Badge>
+                        <Badge variant={batch.status === 'COMPLETED' ? 'success' : batch.status === 'PROCESSING' ? 'warning' : 'info'}>
+                          {batch.status}
+                        </Badge>
+                        <Badge variant="gray">{batchHarvests.length} harvests</Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="font-semibold mb-3">Batch Information</h4>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-sm text-gray-600">Created Date</p>
+                            <p className="text-sm">{new Date(batch.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Total Weight</p>
+                            <p className="text-sm font-semibold">{batch.totalWeight.toLocaleString()} kg</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Farmers</p>
+                            <p className="text-sm">{uniqueFarmers.length} farmer(s)</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-3">Harvest Details</h4>
+                        {batchHarvests.length > 0 ? (
+                          <div className="space-y-2">
+                            {batchHarvests.map((harvest) => (
+                              <div key={harvest.id} className="p-3 bg-gray-50 rounded">
+                                <div className="flex justify-between items-center mb-2">
+                                  <p className="text-sm font-semibold">{getFarmerName(harvest.farmerId)}</p>
+                                  <p className="text-sm">{harvest.weight.toLocaleString()} kg</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Badge variant="gray">{harvest.crop}</Badge>
+                                  <Badge variant={harvest.grade === 'A' ? 'success' : harvest.grade === 'B' ? 'warning' : 'error'}>
+                                    Grade {harvest.grade}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">No harvests found for this batch.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           );
         })
       ) : (
         <Card>
           <CardContent>
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <InventoryIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+            <div className="text-center py-8">
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">
                 {searchTerm ? 'No batches found matching your search.' : 'No batches created yet.'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h3>
+              <p className="text-sm text-gray-600">
                 Batches are created when harvests are grouped together for processing.
-              </Typography>
-            </Box>
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {filteredBatches.length > rowsPerPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={Math.ceil(filteredBatches.length / rowsPerPage)}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-          />
-        </Box>
+        <div className="flex justify-center mt-6">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-600">
+              Page {page} of {Math.ceil(filteredBatches.length / rowsPerPage)}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPage(page + 1)}
+              disabled={page === Math.ceil(filteredBatches.length / rowsPerPage)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       )}
-    </Box>
+
+      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)}>
+        <ModalHeader>Create New Batch</ModalHeader>
+        <ModalContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Harvests ({selectedHarvests.length} selected)
+              </label>
+              <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md">
+                {availableHarvests.length > 0 ? (
+                  availableHarvests.map((harvest) => (
+                    <div key={harvest.id} className="flex items-center p-3 border-b border-gray-200 last:border-b-0">
+                      <Checkbox
+                        checked={selectedHarvests.includes(harvest.id)}
+                        onChange={(checked) => {
+                          if (checked) {
+                            setSelectedHarvests([...selectedHarvests, harvest.id]);
+                          } else {
+                            setSelectedHarvests(selectedHarvests.filter(id => id !== harvest.id));
+                          }
+                        }}
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm font-medium">{getFarmerName(harvest.farmerId)}</p>
+                          <p className="text-sm font-semibold">{harvest.weight} kg</p>
+                        </div>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="gray">{harvest.crop}</Badge>
+                          <Badge variant={harvest.grade === 'A' ? 'success' : harvest.grade === 'B' ? 'warning' : 'error'}>
+                            Grade {harvest.grade}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-gray-500">
+                    No available harvests for batching. Harvests must be processed first.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Select
+                value={batchGrade}
+                onChange={(value) => setBatchGrade(value as Grade)}
+                options={[
+                  { value: 'A', label: 'Grade A' },
+                  { value: 'B', label: 'Grade B' },
+                  { value: 'C', label: 'Grade C' },
+                ]}
+                placeholder="Select Batch Grade"
+              />
+            </div>
+
+            {selectedHarvests.length > 0 && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-800">
+                  <strong>Total Weight:</strong> {harvests.filter(h => selectedHarvests.includes(h.id)).reduce((sum, h) => sum + h.weight, 0)} kg
+                </p>
+              </div>
+            )}
+          </div>
+        </ModalContent>
+        <ModalFooter>
+          <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+          <Button
+            onClick={handleCreateBatch}
+            disabled={selectedHarvests.length === 0 || !batchGrade || creating}
+          >
+            {creating ? 'Creating...' : 'Create Batch'}
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </div>
   );
 };
 

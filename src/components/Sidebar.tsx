@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserRole, NavigationItem } from '../types';
+import { NavigationItem } from '../types';
+import { LogOut } from 'lucide-react';
 
 interface SidebarProps {
   open?: boolean;
@@ -33,13 +34,19 @@ const navigationItems: NavigationItem[] = [
     text: 'Payments',
     path: '/payments',
     icon: 'Payment',
-    roles: ['COOP_ADMIN', 'FINANCE', 'SUPER_ADMIN'],
+    roles: ['COOPERATIVE_ADMIN', 'FINANCE_OFFICER', 'SUPER_ADMIN'],
   },
   {
     text: 'Daily Prices',
     path: '/prices',
     icon: 'Price',
-    roles: ['COOP_ADMIN', 'SUPER_ADMIN'],
+    roles: ['COOPERATIVE_ADMIN', 'SUPER_ADMIN'],
+  },
+  {
+    text: 'Data Management',
+    path: '/data-management',
+    icon: 'Database',
+    roles: ['COOPERATIVE_ADMIN', 'SUPER_ADMIN'],
   },
 ];
 
@@ -74,18 +81,28 @@ const iconMap: { [key: string]: React.ReactElement } = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  Database: (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V7M4 7c0-2.21 1.79-4 4-4h8c2.21 0 4 1.79 4 4M9 17v1a1 1 0 012 0h4a1 1 0 012 0v17M9 7a1 1 0 012 0h4A1 1 0 012 0V7" />
+    </svg>
+  ),
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ open = true, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleNavigation = (path: string): void => {
     navigate(path);
     if (onClose) {
       onClose();
     }
+  };
+
+  const handleLogout = (): void => {
+    logout();
+    navigate('/login');
   };
 
   const filteredNavigationItems = navigationItems.filter(item => {
@@ -120,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true, onClose }) => {
             </div>
             <span className="text-lg font-semibold text-slate-900">Smart Coop</span>
           </div>
-          
+
           {/* Mobile close button */}
           <button
             onClick={onClose}
@@ -136,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true, onClose }) => {
         <nav className="flex-1 space-y-1 px-3 py-4">
           {filteredNavigationItems.map((item) => {
             const isActive = location.pathname === item.path;
-            
+
             return (
               <button
                 key={item.path}
@@ -161,7 +178,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true, onClose }) => {
         {/* User info */}
         {user && (
           <div className="border-t border-slate-200 p-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
                 <span className="text-sm font-medium text-slate-600">
                   {user.username.charAt(0).toUpperCase()}
@@ -176,6 +193,15 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true, onClose }) => {
                 </p>
               </div>
             </div>
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
           </div>
         )}
       </div>

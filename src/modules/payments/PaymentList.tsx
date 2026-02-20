@@ -1,49 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { useCooperativeStore } from '../../store/cooperativeStore';
+import { Payment, PaymentStatus } from '../../types';
 import {
-  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
   Table,
+  TableHeader,
   TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Button,
-  Chip,
-  TextField,
-  InputAdornment,
-  CircularProgress,
-  Alert,
-  Pagination,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  TableCell,
+  TableHeadCell,
+  Badge,
+  Input,
   Select,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+  Modal,
+  ModalHeader,
+  ModalContent,
+  ModalFooter
+} from '../../components';
 import {
-  Search as SearchIcon,
-  Payment as PaymentIcon,
-  CheckCircle as CheckCircleIcon,
-  HourglassEmpty as HourglassEmptyIcon,
-  Warning as WarningIcon,
-} from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
-import { paymentsApi, farmersApi, batchesApi } from '../../services/mockApi';
-import { Payment, Farmer, Batch, PaymentStatus } from '../../types';
+  Search,
+  CheckCircle,
+} from 'lucide-react';
 
 const PaymentList: React.FC = () => {
-  const { user } = useAuth();
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [farmers, setFarmers] = useState<Farmer[]>([]);
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { payments, farmers, fetchPayments, fetchFarmers, updatePayment, isLoading } = useCooperativeStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<PaymentStatus | ''>('');
   const [page, setPage] = useState(1);
@@ -51,36 +33,15 @@ const PaymentList: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const statusOptions: PaymentStatus[] = ['PENDING', 'PAID', 'OVERDUE'];
 
   useEffect(() => {
-    const fetchData = async (): Promise<void> => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [paymentsResponse, farmersResponse, batchesResponse] = await Promise.all([
-          paymentsApi.getPayments(user.tenantId),
-          farmersApi.getFarmers(user.tenantId),
-          batchesApi.getBatches(user.tenantId),
-        ]);
-
-        setPayments(paymentsResponse.data);
-        setFarmers(farmersResponse.data);
-        setBatches(batchesResponse.data);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch payments';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user]);
+    fetchPayments();
+    fetchFarmers();
+    fetchHarvests();
+  }, [fetchPayments, fetchFarmers, fetchHarvests]);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(event.target.value);
@@ -88,41 +49,26 @@ const PaymentList: React.FC = () => {
   };
 
   const getFarmerName = (farmerId: string): string => {
-    const farmer = farmers.find(f => f.id === farmerId);
+    const farmer = farmers.find((f: any) => f.id === farmerId);
     return farmer ? farmer.name : 'Unknown Farmer';
   };
 
-  const getBatchNumber = (batchId: string): string => {
-    const batch = batches.find(b => b.id === batchId);
-    return batch ? batch.batchNumber : 'Unknown Batch';
-  };
-
-  const getStatusColor = (status: PaymentStatus): 'success' | 'warning' | 'error' | 'default' => {
+  const getStatusVariant = (status: PaymentStatus): 'success' | 'warning' | 'error' | 'info' => {
     switch (status) {
       case 'PAID': return 'success';
       case 'PENDING': return 'warning';
       case 'OVERDUE': return 'error';
-      default: return 'default';
+      default: return 'info';
     }
   };
 
-  const getStatusIcon = (status: PaymentStatus) => {
-    switch (status) {
-      case 'PAID': return <CheckCircleIcon />;
-      case 'PENDING': return <HourglassEmptyIcon />;
-      case 'OVERDUE': return <WarningIcon />;
-      default: return <PaymentIcon />;
-    }
-  };
 
-  const filteredPayments = payments.filter(payment => {
+  const filteredPayments = payments.filter((payment: Payment) => {
     const farmerName = getFarmerName(payment.farmerId);
-    const batchNumber = getBatchNumber(payment.batchId);
-    const matchesSearch = 
+    const matchesSearch =
       farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.amount.toString().includes(searchTerm);
-    
+
     const matchesStatus = !filterStatus || payment.status === filterStatus;
 
     return matchesSearch && matchesStatus;
@@ -133,29 +79,21 @@ const PaymentList: React.FC = () => {
     page * rowsPerPage
   );
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number): void => {
-    setPage(value);
-  };
-
   const handleUpdateStatus = (payment: Payment): void => {
     setSelectedPayment(payment);
     setUpdateDialogOpen(true);
   };
 
   const handleStatusUpdate = async (newStatus: PaymentStatus): Promise<void> => {
-    if (!selectedPayment || !user) return;
+    if (!selectedPayment) return;
 
     try {
       setUpdating(true);
-      await paymentsApi.updatePaymentStatus(selectedPayment.id, newStatus, user.tenantId);
-      
-      // Update local state
-      setPayments(prev => prev.map(p => 
-        p.id === selectedPayment.id 
-          ? { ...p, status: newStatus, paidDate: newStatus === 'PAID' ? new Date().toISOString() : undefined }
-          : p
-      ));
-      
+      await updatePayment(selectedPayment.id, {
+        status: newStatus,
+        paidDate: newStatus === 'PAID' ? new Date().toISOString() : undefined
+      });
+
       setUpdateDialogOpen(false);
       setSelectedPayment(null);
     } catch (err) {
@@ -166,200 +104,196 @@ const PaymentList: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading && payments.length === 0) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
+      <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
         {error}
-      </Alert>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom fontWeight={600} sx={{ mb: 3 }}>
-        Payments
-      </Typography>
+    <div>
+      <h1 className="text-2xl font-semibold mb-6">Payments</h1>
 
-      <Card sx={{ mb: 3 }}>
+      <Card className="mb-6">
         <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <TextField
-              placeholder="Search payments..."
-              value={searchTerm}
-              onChange={handleSearch}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ minWidth: 250, flexGrow: 1 }}
-            />
-            <FormControl sx={{ minWidth: 150 }}>
-              <InputLabel>Status</InputLabel>
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-64">
+              <Input
+                placeholder="Search payments by farmer..."
+                value={searchTerm}
+                onChange={handleSearch}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
+            <div className="min-w-40">
               <Select
                 value={filterStatus}
-                label="Status"
-                onChange={(e) => setFilterStatus(e.target.value as PaymentStatus | '')}
-              >
-                <MenuItem value="">All Status</MenuItem>
-                {statusOptions.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+                onChange={(value) => setFilterStatus(value as PaymentStatus | '')}
+                options={[
+                  { value: '', label: 'All Status' },
+                  ...statusOptions.map((status) => ({
+                    value: status,
+                    label: status
+                  }))
+                ]}
+                placeholder="Status"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Farmer</TableCell>
-                  <TableCell>Batch</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Due Date</TableCell>
-                  <TableCell>Paid Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedPayments.length > 0 ? (
-                  paginatedPayments.map((payment) => (
-                    <TableRow key={payment.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          {getFarmerName(payment.farmerId)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {getBatchNumber(payment.batchId)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={600}>
-                          ${payment.amount.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(payment.dueDate).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {payment.paidDate 
-                          ? new Date(payment.paidDate).toLocaleDateString()
-                          : '-'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={getStatusIcon(payment.status)}
-                          label={payment.status}
-                          size="small"
-                          color={getStatusColor(payment.status)}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        {payment.status !== 'PAID' && (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => handleUpdateStatus(payment)}
-                          >
-                            Mark as Paid
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                        {searchTerm || filterStatus 
-                          ? 'No payments found matching your filters.' 
-                          : 'No payments recorded yet.'}
-                      </Typography>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHeadCell>Farmer</TableHeadCell>
+                <TableHeadCell>Amount</TableHeadCell>
+                <TableHeadCell>Due Date</TableHeadCell>
+                <TableHeadCell>Paid Date</TableHeadCell>
+                <TableHeadCell>Status</TableHeadCell>
+                <TableHeadCell className="text-center">Actions</TableHeadCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedPayments.length > 0 ? (
+                paginatedPayments.map((payment: Payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>
+                      <span className="font-semibold">{getFarmerName(payment.farmerId)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-semibold">${payment.amount.toFixed(2)}</span>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(payment.dueDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      {payment.paidDate
+                        ? new Date(payment.paidDate).toLocaleDateString()
+                        : '-'
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(payment.status)}>
+                        {payment.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {payment.status !== 'PAID' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleUpdateStatus(payment)}
+                        >
+                          Mark as Paid
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <p className="text-sm text-gray-500">
+                      {searchTerm || filterStatus
+                        ? 'No payments found matching your filters.'
+                        : 'No payments recorded yet.'}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
 
           {filteredPayments.length > rowsPerPage && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <Pagination
-                count={Math.ceil(filteredPayments.length / rowsPerPage)}
-                page={page}
-                onChange={handlePageChange}
-                color="primary"
-              />
-            </Box>
+            <div className="flex justify-center p-4">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Page {page} of {Math.ceil(filteredPayments.length / rowsPerPage)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === Math.ceil(filteredPayments.length / rowsPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Update Status Dialog */}
-      <Dialog open={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Update Payment Status</DialogTitle>
-        <DialogContent>
+      <Modal isOpen={updateDialogOpen} onClose={() => setUpdateDialogOpen(false)}>
+        <ModalHeader>Update Payment Status</ModalHeader>
+        <ModalContent>
           {selectedPayment && (
-            <Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Payment for {getFarmerName(selectedPayment.farmerId)} - {getBatchNumber(selectedPayment.batchId)}
-              </Typography>
-              <Typography variant="h6" gutterBottom>
+            <div>
+              <p className="text-sm text-gray-600 mb-2">
+                Payment for {getFarmerName(selectedPayment.farmerId)}
+              </p>
+              <p className="text-lg font-semibold mb-2">
                 Amount: ${selectedPayment.amount.toFixed(2)}
-              </Typography>
-              <Typography variant="body2" gutterBottom>
-                Current Status: <Chip label={selectedPayment.status} size="small" color={getStatusColor(selectedPayment.status)} />
-              </Typography>
-            </Box>
+              </p>
+              <p className="text-sm mb-4">
+                Current Status: <Badge variant={getStatusVariant(selectedPayment.status)}>{selectedPayment.status}</Badge>
+              </p>
+            </div>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setUpdateDialogOpen(false)} disabled={updating}>
+        </ModalContent>
+        <ModalFooter>
+          <Button onClick={() => setUpdateDialogOpen(false)} disabled={updating} variant="ghost">
             Cancel
           </Button>
           {selectedPayment?.status === 'PENDING' && (
             <Button
               onClick={() => handleStatusUpdate('PAID')}
-              variant="contained"
               disabled={updating}
-              startIcon={updating ? <CircularProgress size={20} /> : <CheckCircleIcon />}
             >
+              {updating && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              )}
+              <CheckCircle className="w-4 h-4 mr-2" />
               {updating ? 'Updating...' : 'Mark as Paid'}
             </Button>
           )}
           {selectedPayment?.status === 'OVERDUE' && (
             <Button
               onClick={() => handleStatusUpdate('PAID')}
-              variant="contained"
               disabled={updating}
-              startIcon={updating ? <CircularProgress size={20} /> : <CheckCircleIcon />}
             >
+              {updating && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              )}
+              <CheckCircle className="w-4 h-4 mr-2" />
               {updating ? 'Updating...' : 'Mark as Paid'}
             </Button>
           )}
-        </DialogActions>
-      </Dialog>
-    </Box>
+        </ModalFooter>
+      </Modal>
+    </div>
   );
 };
 

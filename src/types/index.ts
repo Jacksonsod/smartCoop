@@ -1,5 +1,30 @@
 // User and Authentication Types
-export type UserRole = 'SUPER_ADMIN' | 'COOP_ADMIN' | 'CLERK' | 'FINANCE' | 'INSPECTOR' | 'FARMER';
+export type UserRole = 'SUPER_ADMIN' | 'COOPERATIVE_ADMIN' | 'CLERK' | 'QUALITY_INSPECTOR' | 'FINANCE_OFFICER' | 'FARMER';
+
+export type CooperativeStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'ACTIVE' | 'SUSPENDED';
+
+export interface Cooperative {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  contactEmail: string;
+  contactPhone: string;
+  email: string;
+  phone: string;
+  address: string;
+  registrationNumber: string;
+  adminUserId: string;
+  status: CooperativeStatus;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  activatedAt?: string;
+  suspendedAt?: string;
+  suspendedBy?: string;
+  suspensionReason?: string;
+}
 
 export interface User {
   id: string;
@@ -7,6 +32,9 @@ export interface User {
   email: string;
   role: UserRole;
   tenantId: string;
+  cooperativeId?: string;
+  farmerId?: string;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,7 +75,12 @@ export interface Harvest {
   weight: number; // in kg
   grade: Grade;
   harvestDate: string;
-  status: 'PENDING' | 'PROCESSED' | 'BATCHED';
+  status: 'RECORDED' | 'PENDING_VERIFICATION' | 'APPROVED' | 'REJECTED' | 'PROCESSED' | 'BATCHED';
+  submittedBy: string; // Clerk who submitted
+  verifiedBy?: string; // Inspector who verified
+  verifiedAt?: string;
+  rejectionReason?: string;
+  documentUrl?: string; // Mock document attachment
   tenantId: string;
   createdAt: string;
   updatedAt: string;
@@ -77,9 +110,18 @@ export interface Payment {
   dueDate: string;
   paidDate?: string;
   status: PaymentStatus;
+  transactionRef?: string; // Added for finance tracking
+  processedBy?: string; // Finance officer who processed
   tenantId: string;
   createdAt: string;
   updatedAt: string;
+
+  // Extended fields for dashboard display (would be joined in real backend)
+  farmerName?: string;
+  cropType?: string;
+  weight?: number;
+  grade?: string;
+  harvestDate?: string;
 }
 
 // Dashboard Statistics
@@ -88,6 +130,38 @@ export interface DashboardStats {
   todayHarvest: number;
   pendingPayments: number;
   totalBatches: number;
+}
+
+export interface CooperativeStats {
+  totalCooperatives: number;
+  pendingApprovals: number;
+  activeCooperatives: number;
+  suspendedCooperatives: number;
+  growthData: { month: string; count: number }[];
+  statusData: { status: CooperativeStatus; count: number }[];
+}
+
+export interface CooperativeDashboardStats {
+  totalFarmers: number;
+  totalHarvests: number;
+  totalWeight: number;
+  pendingApprovals: number;
+  revenueData: { month: string; amount: number }[];
+  harvestByCrop: { crop: CropType; weight: number }[];
+  qualityGrades: { grade: Grade; count: number }[];
+}
+
+export interface FinanceStats {
+  pendingPayments: number;
+  paidPayments: number;
+  monthlyPayouts: { month: string; amount: number }[];
+  paymentStatus: { status: PaymentStatus; count: number }[];
+}
+
+export interface FarmerStats {
+  totalDeliveries: number;
+  totalEarnings: number;
+  deliveryTrend: { date: string; weight: number }[];
 }
 
 // API Response Types
@@ -108,8 +182,14 @@ export interface PaginatedResponse<T> {
 // Pricing Types
 export interface Price {
   id: string;
-  crop: CropType;
-  pricePerKg: number;
+  cropType: string; // Changed from crop: CropType to match usage
+  pricePerKg: {
+    A: number;
+    B: number;
+    C: number;
+  };
+  currency: string;
+  status?: string;
   effectiveDate: string;
   tenantId: string;
   createdAt: string;

@@ -7,3 +7,5 @@ export { Modal, ModalHeader, ModalContent, ModalFooter } from './Modal';
 export { Input, Textarea, Select, Checkbox } from './Form';
 export { default as Sidebar } from './Sidebar';
 export { default as StatCard } from './StatCard';
+export { default as DataManager } from './DataManager';
+export { default as CooperativeGuard } from './CooperativeGuard';

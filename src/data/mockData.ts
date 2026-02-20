@@ -1,17 +1,82 @@
-import { User, Farmer, Harvest, Batch, Payment, UserRole, CropType, Grade, PaymentStatus, Price } from '../types';
+import { User, Farmer, Harvest, Batch, Payment, UserRole, CropType, Grade, PaymentStatus, Price, Cooperative, CooperativeStatus } from '../types';
 
 // Mock tenant IDs for multi-tenancy simulation
 export const TENANT_ID_1 = 'tenant-001';
 export const TENANT_ID_2 = 'tenant-002';
 
+// Mock Cooperatives
+export const mockCooperatives: Cooperative[] = [
+  {
+    id: TENANT_ID_1,
+    name: 'Green Valley Cooperative',
+    description: 'Agricultural cooperative serving local farmers in Green Valley',
+    location: 'Green Valley, CA',
+    contactEmail: 'admin@greenvalley.coop',
+    contactPhone: '+1 (555) 123-4567',
+    registrationNumber: 'REG-001',
+    adminUserId: 'user-001',
+    email: 'admin@greenvalley.coop',
+    phone: '+1 (555) 123-4567',
+    address: 'Green Valley, CA',
+    status: 'ACTIVE' as CooperativeStatus,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+    approvedAt: '2024-01-01T00:00:00Z',
+    approvedBy: 'super-admin',
+  },
+  {
+    id: TENANT_ID_2,
+    name: 'Sunrise Farms Cooperative',
+    description: 'Supporting sustainable farming practices',
+    location: 'Sunrise County, TX',
+    contactEmail: 'admin@sunrisefarms.coop',
+    contactPhone: '+1 (555) 987-6543',
+    registrationNumber: 'REG-002',
+    adminUserId: 'user-004',
+    email: 'admin@sunrisefarms.coop',
+    phone: '+1 (555) 987-6543',
+    address: 'Sunrise County, TX',
+    status: 'PENDING_APPROVAL' as CooperativeStatus,
+    createdAt: '2024-02-01T00:00:00Z',
+    updatedAt: '2024-02-01T00:00:00Z',
+  },
+  {
+    id: 'tenant-003',
+    name: 'Mountain View Cooperative',
+    description: 'High-altitude farming cooperative',
+    location: 'Mountain View, CO',
+    contactEmail: 'admin@mountainview.coop',
+    contactPhone: '+1 (555) 456-7890',
+    registrationNumber: 'REG-003',
+    adminUserId: 'user-new',
+    email: 'admin@mountainview.coop',
+    phone: '+1 (555) 456-7890',
+    address: 'Mountain View, CO',
+    status: 'DRAFT' as CooperativeStatus,
+    createdAt: '2024-02-15T00:00:00Z',
+    updatedAt: '2024-02-15T00:00:00Z',
+  },
+];
+
 // Mock Users
 export const mockUsers: User[] = [
+  {
+    id: 'user-super',
+    username: 'superadmin',
+    email: 'super@smartcoop.com',
+    role: 'SUPER_ADMIN' as UserRole,
+    tenantId: 'system', // Super admin doesn't belong to a specific tenant
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
   {
     id: 'user-001',
     username: 'admin',
     email: 'admin@smartcoop.com',
-    role: 'COOP_ADMIN' as UserRole,
+    role: 'COOPERATIVE_ADMIN' as UserRole,
     tenantId: TENANT_ID_1,
+    isActive: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
@@ -21,15 +86,28 @@ export const mockUsers: User[] = [
     email: 'clerk@smartcoop.com',
     role: 'CLERK' as UserRole,
     tenantId: TENANT_ID_1,
+    isActive: true,
     createdAt: '2024-01-02T00:00:00Z',
     updatedAt: '2024-01-02T00:00:00Z',
+  },
+  {
+    id: 'user-005',
+    username: 'farmer',
+    email: 'farmer@coop1.com',
+    role: 'FARMER' as UserRole,
+    tenantId: TENANT_ID_1,
+    farmerId: 'farmer-001',
+    isActive: true,
+    createdAt: '2024-01-05T00:00:00Z',
+    updatedAt: '2024-01-05T00:00:00Z',
   },
   {
     id: 'user-003',
     username: 'finance',
     email: 'finance@smartcoop.com',
-    role: 'FINANCE' as UserRole,
+    role: 'FINANCE_OFFICER' as UserRole,
     tenantId: TENANT_ID_1,
+    isActive: true,
     createdAt: '2024-01-03T00:00:00Z',
     updatedAt: '2024-01-03T00:00:00Z',
   },
@@ -37,8 +115,9 @@ export const mockUsers: User[] = [
     id: 'user-004',
     username: 'admin2',
     email: 'admin2@smartcoop.com',
-    role: 'COOP_ADMIN' as UserRole,
+    role: 'COOPERATIVE_ADMIN' as UserRole,
     tenantId: TENANT_ID_2,
+    isActive: true,
     createdAt: '2024-01-04T00:00:00Z',
     updatedAt: '2024-01-04T00:00:00Z',
   },
@@ -49,7 +128,7 @@ export const mockFarmers: Farmer[] = [
   {
     id: 'farmer-001',
     name: 'John Smith',
-    email: 'john.smith@email.com',
+    email: 'farmer@coop1.com',
     phone: '+1234567890',
     address: '123 Farm Road, Rural Area, State 12345',
     farmSize: 50,
@@ -93,6 +172,7 @@ export const mockFarmers: Farmer[] = [
 ];
 
 // Mock Harvests
+// Mock Harvests
 export const mockHarvests: Harvest[] = [
   {
     id: 'harvest-001',
@@ -102,6 +182,7 @@ export const mockHarvests: Harvest[] = [
     grade: 'A' as Grade,
     harvestDate: '2024-02-15T00:00:00Z',
     status: 'PROCESSED',
+    submittedBy: 'user-clerk-001',
     tenantId: TENANT_ID_1,
     createdAt: '2024-02-15T00:00:00Z',
     updatedAt: '2024-02-15T00:00:00Z',
@@ -114,6 +195,7 @@ export const mockHarvests: Harvest[] = [
     grade: 'B' as Grade,
     harvestDate: '2024-02-16T00:00:00Z',
     status: 'BATCHED',
+    submittedBy: 'user-clerk-001',
     tenantId: TENANT_ID_1,
     createdAt: '2024-02-16T00:00:00Z',
     updatedAt: '2024-02-16T00:00:00Z',
@@ -125,7 +207,8 @@ export const mockHarvests: Harvest[] = [
     weight: 4200,
     grade: 'A' as Grade,
     harvestDate: new Date().toISOString().split('T')[0] + 'T00:00:00Z', // Today
-    status: 'PENDING',
+    status: 'PENDING_VERIFICATION',
+    submittedBy: 'user-clerk-001',
     tenantId: TENANT_ID_1,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -138,6 +221,7 @@ export const mockHarvests: Harvest[] = [
     grade: 'C' as Grade,
     harvestDate: '2024-02-14T00:00:00Z',
     status: 'PROCESSED',
+    submittedBy: 'user-clerk-001',
     tenantId: TENANT_ID_1,
     createdAt: '2024-02-14T00:00:00Z',
     updatedAt: '2024-02-14T00:00:00Z',
@@ -150,6 +234,7 @@ export const mockHarvests: Harvest[] = [
     grade: 'A' as Grade,
     harvestDate: '2024-02-13T00:00:00Z',
     status: 'PROCESSED',
+    submittedBy: 'user-clerk-001',
     tenantId: TENANT_ID_2,
     createdAt: '2024-02-13T00:00:00Z',
     updatedAt: '2024-02-13T00:00:00Z',
@@ -254,8 +339,9 @@ export const getTenantData = <T extends { tenantId: string }>(
 export const mockPrices: Price[] = [
   {
     id: 'price-001',
-    crop: 'MAIZE',
-    pricePerKg: 0.50,
+    cropType: 'MAIZE',
+    pricePerKg: { A: 250, B: 200, C: 150 },
+    currency: 'RWF',
     effectiveDate: '2024-02-15T00:00:00Z',
     tenantId: TENANT_ID_1,
     createdAt: '2024-02-15T00:00:00Z',
@@ -263,8 +349,9 @@ export const mockPrices: Price[] = [
   },
   {
     id: 'price-002',
-    crop: 'WHEAT',
-    pricePerKg: 0.65,
+    cropType: 'WHEAT',
+    pricePerKg: { A: 300, B: 250, C: 200 },
+    currency: 'RWF',
     effectiveDate: '2024-02-15T00:00:00Z',
     tenantId: TENANT_ID_1,
     createdAt: '2024-02-15T00:00:00Z',

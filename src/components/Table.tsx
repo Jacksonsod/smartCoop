@@ -66,13 +66,15 @@ interface TableCellProps {
   className?: string;
   align?: 'left' | 'center' | 'right';
   padding?: 'none' | 'sm' | 'md' | 'lg';
+  colSpan?: number;
 }
 
 const TableCell: React.FC<TableCellProps> = ({ 
   children, 
   className = '', 
   align = 'left',
-  padding = 'md'
+  padding = 'md',
+  colSpan
 }) => {
   const alignClasses = {
     left: 'text-left',
@@ -88,12 +90,15 @@ const TableCell: React.FC<TableCellProps> = ({
   };
   
   return (
-    <td className={`
-      whitespace-nowrap text-sm text-slate-900
-      ${alignClasses[align]}
-      ${paddingClasses[padding]}
-      ${className}
-    `}>
+    <td 
+      className={`
+        whitespace-nowrap text-sm text-slate-900
+        ${alignClasses[align]}
+        ${paddingClasses[padding]}
+        ${className}
+      `}
+      colSpan={colSpan}
+    >
       {children}
     </td>
   );

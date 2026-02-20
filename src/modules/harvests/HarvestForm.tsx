@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  Grid,
-} from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { harvestsApi, farmersApi } from '../../services/mockApi';
-import { Farmer, Harvest, CropType, Grade } from '../../types';
+import { Farmer, CropType, Grade } from '../../types';
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Select,
+} from '../../components';
+import {
+  ArrowLeft,
+  Save,
+} from 'lucide-react';
 
 const HarvestForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,9 +23,9 @@ const HarvestForm: React.FC = () => {
 
   const [formData, setFormData] = useState({
     farmerId: '',
-    crop: '' as CropType,
+    crop: '' as CropType | '',
     weight: '',
-    grade: '' as Grade,
+    grade: '' as Grade | '',
     harvestDate: new Date().toISOString().split('T')[0],
   });
 
@@ -83,7 +75,7 @@ const HarvestForm: React.FC = () => {
 
   const handleChange = (field: string, value: string): void => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Clear field-specific error when user starts typing
     if (validationErrors[field]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }));
@@ -97,7 +89,7 @@ const HarvestForm: React.FC = () => {
       errors.farmerId = 'Farmer is required';
     }
 
-    if (!formData.crop) {
+    if (!formData.crop || !cropTypes.includes(formData.crop as CropType)) {
       errors.crop = 'Crop type is required';
     }
 
@@ -105,7 +97,7 @@ const HarvestForm: React.FC = () => {
       errors.weight = 'Weight must be greater than 0';
     }
 
-    if (!formData.grade) {
+    if (!formData.grade || !grades.includes(formData.grade as Grade)) {
       errors.grade = 'Grade is required';
     }
 
@@ -131,8 +123,11 @@ const HarvestForm: React.FC = () => {
       const harvestData = {
         ...formData,
         weight: parseFloat(formData.weight),
-        status: 'PENDING' as const,
+        status: 'RECORDED' as const,
+        submittedBy: user.id,
         tenantId: user.tenantId,
+        crop: formData.crop as CropType,
+        grade: formData.grade as Grade,
       };
 
       if (isEditing && id) {
@@ -152,158 +147,175 @@ const HarvestForm: React.FC = () => {
 
   if (initialLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+    <div>
+      <div className="flex items-center mb-6">
         <Button
-          startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/harvests')}
-          sx={{ mr: 2 }}
+          className="mr-4"
+          variant="secondary"
         >
+          <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Harvests
         </Button>
-        <Typography variant="h4" fontWeight={600}>
+        <h1 className="text-2xl font-semibold">
           {isEditing ? 'Edit Harvest' : 'Add New Harvest'}
-        </Typography>
-      </Box>
+        </h1>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
           {error}
-        </Alert>
+        </div>
       )}
 
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!validationErrors.farmerId}>
-                  <InputLabel>Farmer</InputLabel>
-                  <Select
-                    value={formData.farmerId}
-                    label="Farmer"
-                    onChange={(e) => handleChange('farmerId', e.target.value)}
-                    disabled={loading}
-                  >
-                    {farmers.map((farmer) => (
-                      <MenuItem key={farmer.id} value={farmer.id}>
-                        {farmer.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {validationErrors.farmerId && (
-                    <Typography variant="caption" color="error">
-                      {validationErrors.farmerId}
-                    </Typography>
-                  )}
-                </FormControl>
-              </Grid>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Farmer
+                </label>
+                <Select
+                  value={formData.farmerId}
+                  onChange={(value) => handleChange('farmerId', value)}
+                  disabled={loading}
+                  className={validationErrors.farmerId ? 'border-red-500' : ''}
+                  options={[
+                    { value: '', label: 'Select a farmer' },
+                    ...farmers.map((farmer) => ({
+                      value: farmer.id,
+                      label: farmer.name
+                    }))
+                  ]}
+                />
+                {validationErrors.farmerId && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {validationErrors.farmerId}
+                  </p>
+                )}
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!validationErrors.crop}>
-                  <InputLabel>Crop Type</InputLabel>
-                  <Select
-                    value={formData.crop}
-                    label="Crop Type"
-                    onChange={(e) => handleChange('crop', e.target.value)}
-                    disabled={loading}
-                  >
-                    {cropTypes.map((crop) => (
-                      <MenuItem key={crop} value={crop}>
-                        {crop}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {validationErrors.crop && (
-                    <Typography variant="caption" color="error">
-                      {validationErrors.crop}
-                    </Typography>
-                  )}
-                </FormControl>
-              </Grid>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Crop Type
+                </label>
+                <Select
+                  value={formData.crop}
+                  onChange={(value) => handleChange('crop', value)}
+                  disabled={loading}
+                  className={validationErrors.crop ? 'border-red-500' : ''}
+                  options={[
+                    { value: '', label: 'Select crop type' },
+                    ...cropTypes.map((crop) => ({
+                      value: crop,
+                      label: crop
+                    }))
+                  ]}
+                />
+                {validationErrors.crop && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {validationErrors.crop}
+                  </p>
+                )}
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Weight (kg)"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Weight (kg)
+                </label>
+                <Input
                   type="number"
                   value={formData.weight}
                   onChange={(e) => handleChange('weight', e.target.value)}
-                  error={!!validationErrors.weight}
-                  helperText={validationErrors.weight}
                   disabled={loading}
-                  inputProps={{ min: 0, step: 0.01 }}
+                  className={validationErrors.weight ? 'border-red-500' : ''}
+                  min="0"
+                  step="0.01"
                 />
-              </Grid>
+                {validationErrors.weight && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {validationErrors.weight}
+                  </p>
+                )}
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth error={!!validationErrors.grade}>
-                  <InputLabel>Grade</InputLabel>
-                  <Select
-                    value={formData.grade}
-                    label="Grade"
-                    onChange={(e) => handleChange('grade', e.target.value)}
-                    disabled={loading}
-                  >
-                    {grades.map((grade) => (
-                      <MenuItem key={grade} value={grade}>
-                        Grade {grade}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {validationErrors.grade && (
-                    <Typography variant="caption" color="error">
-                      {validationErrors.grade}
-                    </Typography>
-                  )}
-                </FormControl>
-              </Grid>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Grade
+                </label>
+                <Select
+                  value={formData.grade}
+                  onChange={(value) => handleChange('grade', value)}
+                  disabled={loading}
+                  className={validationErrors.grade ? 'border-red-500' : ''}
+                  options={[
+                    { value: '', label: 'Select grade' },
+                    ...grades.map((grade) => ({
+                      value: grade,
+                      label: `Grade ${grade}`
+                    }))
+                  ]}
+                />
+                {validationErrors.grade && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {validationErrors.grade}
+                  </p>
+                )}
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Harvest Date"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Harvest Date
+                </label>
+                <Input
                   type="date"
                   value={formData.harvestDate}
                   onChange={(e) => handleChange('harvestDate', e.target.value)}
-                  error={!!validationErrors.harvestDate}
-                  helperText={validationErrors.harvestDate}
                   disabled={loading}
-                  InputLabelProps={{ shrink: true }}
+                  className={validationErrors.harvestDate ? 'border-red-500' : ''}
                 />
-              </Grid>
+                {validationErrors.harvestDate && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {validationErrors.harvestDate}
+                  </p>
+                )}
+              </div>
 
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <div className="md:col-span-2">
+                <div className="flex gap-4 justify-end">
                   <Button
-                    variant="outlined"
+                    type="button"
                     onClick={() => navigate('/harvests')}
                     disabled={loading}
+                    variant="secondary"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    variant="contained"
-                    startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
                     disabled={loading}
                   >
+                    {loading && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    )}
+                    <Save className="w-4 h-4 mr-2" />
                     {loading ? 'Saving...' : (isEditing ? 'Update Harvest' : 'Save Harvest')}
                   </Button>
-                </Box>
-              </Grid>
-            </Grid>
+                </div>
+              </div>
+            </div>
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-} from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { farmersApi } from '../../services/mockApi';
 import { Farmer } from '../../types';
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Textarea
+} from '../../components';
+import {
+  ArrowLeft,
+  Save,
+} from 'lucide-react';
 
 const FarmerForm: React.FC = () => {
   const navigate = useNavigate();
@@ -56,7 +52,7 @@ const FarmerForm: React.FC = () => {
     }
   }, [id, isEditing, user]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target;
     setFarmer(prev => ({
       ...prev,
@@ -82,7 +78,12 @@ const FarmerForm: React.FC = () => {
       if (isEditing && id) {
         await farmersApi.updateFarmer(id, farmer as Partial<Farmer>, user.tenantId);
       } else {
-        await farmersApi.createFarmer(farmer as Omit<Farmer, 'id' | 'createdAt' | 'updatedAt'>);
+        // Add tenant ID to farmer data
+        const farmerWithTenant = {
+          ...farmer,
+          tenantId: user.tenantId,
+        };
+        await farmersApi.createFarmer(farmerWithTenant as Omit<Farmer, 'id' | 'createdAt' | 'updatedAt'>);
       }
 
       setSuccess(true);
@@ -98,129 +99,119 @@ const FarmerForm: React.FC = () => {
 
   if (loading && isEditing) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="p-6">
+        <div className="flex justify-center items-center h-50vh">
+          <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-gray-600" role="status">
+            <span className="sr-only">Loading...</span>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/farmers')}
-          sx={{ mr: 2 }}
-        >
-          Back to Farmers
-        </Button>
-        <Typography variant="h4" fontWeight={600}>
-          {isEditing ? 'Edit Farmer' : 'Add New Farmer'}
-        </Typography>
-      </Box>
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Farmer {isEditing ? 'updated' : 'created'} successfully! Redirecting...
-        </Alert>
-      )}
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
+    <div className="p-6">
       <Card>
         <CardContent>
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Farmer Name"
-                  name="name"
-                  value={farmer.name || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </Grid>
+          <div className="flex items-center mb-6 gap-4">
+            <button
+              onClick={() => navigate('/farmers')}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-slate-900">
+              {isEditing ? 'Edit Farmer' : 'Add New Farmer'}
+            </h1>
+          </div>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={farmer.email || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </Grid>
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4">
+              Farmer {isEditing ? 'updated' : 'created'} successfully! Redirecting...
+            </div>
+          )}
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  name="phone"
-                  value={farmer.phone || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </Grid>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Farm Size (hectares)"
-                  name="farmSize"
-                  type="number"
-                  inputProps={{ min: 0, step: 0.1 }}
-                  value={farmer.farmSize || ''}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-              </Grid>
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Farmer Name"
+                name="name"
+                value={farmer.name || ''}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
 
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Address"
-                  name="address"
-                  multiline
-                  rows={3}
-                  value={farmer.address || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </Grid>
-            </Grid>
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={farmer.email || ''}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
 
-            <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+              <Input
+                label="Phone Number"
+                name="phone"
+                value={farmer.phone || ''}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+
+              <Input
+                label="Farm Size (hectares)"
+                name="farmSize"
+                type="number"
+                min={0}
+                step={0.1}
+                value={farmer.farmSize || ''}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
+
+            <div className="mt-6">
+              <Textarea
+                label="Address"
+                name="address"
+                rows={3}
+                value={farmer.address || ''}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="flex gap-3 mt-6">
               <Button
                 type="submit"
-                variant="contained"
-                startIcon={<SaveIcon />}
-                disabled={loading}
+                loading={loading}
+                startIcon={<Save className="h-4 w-4" />}
               >
                 {loading ? 'Saving...' : (isEditing ? 'Update Farmer' : 'Create Farmer')}
               </Button>
               <Button
-                variant="outlined"
+                type="button"
+                variant="secondary"
                 onClick={() => navigate('/farmers')}
                 disabled={loading}
               >
                 Cancel
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

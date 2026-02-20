@@ -133,12 +133,14 @@ const Textarea: React.FC<TextareaProps> = ({
   );
 };
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> {
   label?: string;
   error?: string;
   helperText?: string;
   options: Array<{ value: string; label: string; disabled?: boolean }>;
   placeholder?: string;
+  onChange?: (value: string) => void;
+  value?: string;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -149,9 +151,17 @@ const Select: React.FC<SelectProps> = ({
   placeholder = 'Select an option',
   className = '',
   id,
+  onChange,
+  value,
   ...props
 }) => {
   const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onChange) {
+      onChange(e.target.value);
+    }
+  };
   
   return (
     <div className="w-full">
@@ -166,12 +176,14 @@ const Select: React.FC<SelectProps> = ({
       
       <select
         id={selectId}
+        defaultValue={value}
         className={`
           w-full px-3 py-2 border rounded-lg text-sm
           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
           ${error ? 'border-red-300 focus:ring-red-500' : 'border-slate-300'}
           ${className}
         `.trim().replace(/\s+/g, ' ')}
+        onChange={handleChange}
         {...props}
       >
         <option value="" disabled>
